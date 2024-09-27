@@ -15,24 +15,37 @@ class MyApp extends StatelessWidget {
 
 class Cadastro extends StatefulWidget {
   final EventosRepository eventos;
-  Cadastro({required this.eventos});
+  final Evento? evento;
+
+  Cadastro({required this.eventos, this.evento});
 
   @override
-  State<Cadastro> createState() => _CadastroState(eventos: eventos);
+  State<Cadastro> createState() =>
+      _CadastroState(eventos: eventos, evento: evento);
 }
 
 class _CadastroState extends State<Cadastro> {
   final TextEditingController tituloController = TextEditingController();
   final TextEditingController dataController = TextEditingController();
   final EventosRepository eventos;
+  final Evento? evento;
 
-  _CadastroState({required this.eventos});
+  _CadastroState({required this.eventos, this.evento});
+
+  @override
+  void initState() {
+    super.initState();
+    if (evento != null) {
+      tituloController.text = evento!.titulo;
+      dataController.text = evento!.data;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Cadastro de Evento'),
+        title: Text(evento == null ? 'Cadastro de Evento' : 'Editar Evento'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -58,11 +71,18 @@ class _CadastroState extends State<Cadastro> {
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  setState(() {
-                    eventos.addEvento(Evento(
-                        titulo: tituloController.text,
-                        data: dataController.text));
-                  });
+                  if (evento == null) {
+                    setState(() {
+                      eventos.addEvento(Evento(
+                          titulo: tituloController.text,
+                          data: dataController.text));
+                    });
+                  } else {
+                    setState(() {
+                      evento!.titulo = tituloController.text;
+                      evento!.data = dataController.text;
+                    });
+                  }
                   Navigator.pop(context);
                 },
                 child: Text('Salvar'),
@@ -157,6 +177,18 @@ class Listagem extends StatelessWidget {
                     child: ListTile(
                       title: Text(e.titulo),
                       subtitle: Text(e.data),
+                      trailing: IconButton(
+                        icon: Icon(Icons.edit),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  Cadastro(eventos: eventos, evento: e),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   );
                 },
