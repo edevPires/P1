@@ -105,9 +105,59 @@ class Principal extends StatelessWidget {
                   child: Text("Cadastrar Evento"),
                 ),
               ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Listagem(eventos: eventos),
+                    ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 12.0, horizontal: 20.0),
+                  child: Text("Listar Eventos"),
+                ),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class Listagem extends StatelessWidget {
+  final EventosRepository eventos;
+  Listagem({required this.eventos});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Listagem de Eventos'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: eventos.getEventos().isEmpty
+            ? Center(
+                child: Text(
+                  'Nenhum evento cadastrado',
+                  style: TextStyle(fontSize: 18),
+                ),
+              )
+            : ListView.builder(
+                itemCount: eventos.getEventos().length,
+                itemBuilder: (context, index) {
+                  Evento e = eventos.getEventos()[index];
+                  return ListTile(
+                    title: Text(e.titulo),
+                    subtitle: Text(e.data),
+                  );
+                },
+              ),
       ),
     );
   }
