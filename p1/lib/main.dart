@@ -152,9 +152,12 @@ class Listagem extends StatelessWidget {
                 itemCount: eventos.getEventos().length,
                 itemBuilder: (context, index) {
                   Evento e = eventos.getEventos()[index];
-                  return ListTile(
-                    title: Text(e.titulo),
-                    subtitle: Text(e.data),
+                  return Card(
+                    margin: EdgeInsets.symmetric(vertical: 8.0),
+                    child: ListTile(
+                      title: Text(e.titulo),
+                      subtitle: Text(e.data),
+                    ),
                   );
                 },
               ),
