@@ -15,37 +15,24 @@ class MyApp extends StatelessWidget {
 
 class Cadastro extends StatefulWidget {
   final EventosRepository eventos;
-  final Evento? evento;
-
-  Cadastro({required this.eventos, this.evento});
+  Cadastro({required this.eventos});
 
   @override
-  State<Cadastro> createState() =>
-      _CadastroState(eventos: eventos, evento: evento);
+  State<Cadastro> createState() => _CadastroState(eventos: eventos);
 }
 
 class _CadastroState extends State<Cadastro> {
   final TextEditingController tituloController = TextEditingController();
   final TextEditingController dataController = TextEditingController();
   final EventosRepository eventos;
-  final Evento? evento;
 
-  _CadastroState({required this.eventos, this.evento});
-
-  @override
-  void initState() {
-    super.initState();
-    if (evento != null) {
-      tituloController.text = evento!.titulo;
-      dataController.text = evento!.data;
-    }
-  }
+  _CadastroState({required this.eventos});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(evento == null ? 'Cadastro de Evento' : 'Editar Evento'),
+        title: Text('Cadastro de Evento'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -71,18 +58,11 @@ class _CadastroState extends State<Cadastro> {
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  if (evento == null) {
-                    setState(() {
-                      eventos.addEvento(Evento(
-                          titulo: tituloController.text,
-                          data: dataController.text));
-                    });
-                  } else {
-                    setState(() {
-                      evento!.titulo = tituloController.text;
-                      evento!.data = dataController.text;
-                    });
-                  }
+                  setState(() {
+                    eventos.addEvento(Evento(
+                        titulo: tituloController.text,
+                        data: dataController.text));
+                  });
                   Navigator.pop(context);
                 },
                 child: Text('Salvar'),
@@ -149,9 +129,18 @@ class Principal extends StatelessWidget {
   }
 }
 
-class Listagem extends StatelessWidget {
+class Listagem extends StatefulWidget {
   final EventosRepository eventos;
   Listagem({required this.eventos});
+
+  @override
+  State<Listagem> createState() => ListagemState(eventos: eventos);
+}
+
+class ListagemState extends State<Listagem> {
+  final EventosRepository eventos;
+
+  ListagemState({required this.eventos});
 
   @override
   Widget build(BuildContext context) {
@@ -173,9 +162,9 @@ class Listagem extends StatelessWidget {
                 itemBuilder: (context, index) {
                   Evento e = eventos.getEventos()[index];
                   return Card(
-                    margin: EdgeInsets.symmetric(vertical: 8.0),
                     child: ListTile(
-                      title: Text(e.titulo),
+                      title: Text(e.titulo,
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                       subtitle: Text(e.data),
                       trailing: IconButton(
                         icon: Icon(Icons.edit),
@@ -183,8 +172,8 @@ class Listagem extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  Cadastro(eventos: eventos, evento: e),
+                              builder: (context) => Edicao(
+                                  evento: e, eventos: eventos, index: index),
                             ),
                           );
                         },
@@ -193,6 +182,77 @@ class Listagem extends StatelessWidget {
                   );
                 },
               ),
+      ),
+    );
+  }
+}
+
+class Edicao extends StatefulWidget {
+  final Evento evento;
+  final EventosRepository eventos;
+  final int index;
+
+  Edicao({required this.evento, required this.eventos, required this.index});
+
+  @override
+  _EdicaoState createState() => _EdicaoState();
+}
+
+class _EdicaoState extends State<Edicao> {
+  late TextEditingController tituloController;
+  late TextEditingController dataController;
+
+  @override
+  void initState() {
+    super.initState();
+    tituloController = TextEditingController(text: widget.evento.titulo);
+    dataController = TextEditingController(text: widget.evento.data);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Edição de Evento'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextField(
+                decoration: InputDecoration(
+                  labelText: 'Título do Evento',
+                  border: OutlineInputBorder(),
+                ),
+                controller: tituloController,
+              ),
+              SizedBox(height: 20),
+              TextField(
+                decoration: InputDecoration(
+                  labelText: 'Data do Evento (dd/mm/yyyy)',
+                  border: OutlineInputBorder(),
+                ),
+                controller: dataController,
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    widget.eventos.updateEvento(
+                        widget.index,
+                        Evento(
+                            titulo: tituloController.text,
+                            data: dataController.text));
+                  });
+                  Navigator.pop(context);
+                },
+                child: Text('Salvar Alterações'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -214,5 +274,9 @@ class EventosRepository {
 
   List<Evento> getEventos() {
     return eventos;
+  }
+
+  void updateEvento(int index, Evento e) {
+    eventos[index] = e;
   }
 }
