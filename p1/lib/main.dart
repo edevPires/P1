@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:convert'; 
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(MyApp());
@@ -75,8 +77,21 @@ class _CadastroState extends State<Cadastro> {
   }
 }
 
-class Principal extends StatelessWidget {
+class Principal extends StatefulWidget {
+  @override
+  State<Principal> createState() => _PrincipalState();
+}
+
+class _PrincipalState extends State<Principal> {
   final EventosRepository eventos = EventosRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    eventos.loadEventos().then((_) {
+      setState(() {});
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -263,20 +278,53 @@ class Evento {
   String data;
 
   Evento({required this.titulo, required this.data});
+
+  Map<String, dynamic> toJson() {
+    return {
+      'titulo': titulo,
+      'data': data,
+    };
+  }
+
+  factory Evento.fromJson(Map<String, dynamic> json) {
+    return Evento(
+      titulo: json['titulo'],
+      data: json['data'],
+    );
+  }
 }
 
 class EventosRepository {
   final List<Evento> eventos = [];
 
-  void addEvento(Evento e) {
+  Future<void> addEvento(Evento e) async {
     eventos.add(e);
+    await saveEventos();
   }
 
   List<Evento> getEventos() {
     return eventos;
   }
 
-  void updateEvento(int index, Evento e) {
+  Future<void> updateEvento(int index, Evento e) async {
     eventos[index] = e;
+    await saveEventos();
+  }
+
+  Future<void> saveEventos() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> eventosJson =
+        eventos.map((evento) => jsonEncode(evento.toJson())).toList();
+    prefs.setStringList('eventos', eventosJson);
+  }
+
+  Future<void> loadEventos() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String>? eventosJson = prefs.getStringList('eventos');
+    if (eventosJson != null) {
+      eventos.clear();
+      eventos.addAll(
+          eventosJson.map((evento) => Evento.fromJson(jsonDecode(evento))));
+    }
   }
 }
