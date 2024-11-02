@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
+final storage = FlutterSecureStorage();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  String? username = prefs.getString('username');
-
+  String? username = await storage.read(key: 'username');
+  
   runApp(MyApp(initialRoute: username == null ? '/login' : '/home'));
 }
 
@@ -115,14 +116,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   );
 
                   if (isValid) {
-                    SharedPreferences prefs = await SharedPreferences.getInstance();
-                    prefs.setString('username', usernameController.text);
+                    await storage.write(key: 'username', value: usernameController.text);
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (context) => Principal()),
                     );
                   } else {
-                    // Exibir mensagem de erro
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Usuário ou senha inválidos')),
                     );
@@ -222,8 +221,7 @@ class _PrincipalState extends State<Principal> {
           IconButton(
             icon: Icon(Icons.logout),
             onPressed: () async {
-              SharedPreferences prefs = await SharedPreferences.getInstance();
-              await prefs.remove('username');
+              await storage.delete(key: 'username');
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -274,198 +272,5 @@ class _PrincipalState extends State<Principal> {
         ),
       ),
     );
-  }
-}
-
-class Listagem extends StatefulWidget {
-  final EventosRepository eventos;
-  Listagem({required this.eventos});
-
-  @override
-  State<Listagem> createState() => ListagemState(eventos: eventos);
-}
-
-class ListagemState extends State<Listagem> {
-  final EventosRepository eventos;
-
-  ListagemState({required this.eventos});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Listagem de Eventos'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: eventos.getEventos().isEmpty
-            ? Center(
-                child: Text(
-                  'Nenhum evento cadastrado',
-                  style: TextStyle(fontSize: 18),
-                ),
-              )
-            : ListView.builder(
-                itemCount: eventos.getEventos().length,
-                itemBuilder: (context, index) {
-                  Evento e = eventos.getEventos()[index];
-                  return Card(
-                    child: ListTile(
-                      title: Text(e.titulo,
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(e.data),
-                      trailing: IconButton(
-                        icon: Icon(Icons.edit),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => Edicao(
-                                  evento: e, eventos: eventos, index: index),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-      ),
-    );
-  }
-}
-
-class Edicao extends StatefulWidget {
-  final Evento evento;
-  final EventosRepository eventos;
-  final int index;
-
-  Edicao({required this.evento, required this.eventos, required this.index});
-
-  @override
-  _EdicaoState createState() => _EdicaoState();
-}
-
-class _EdicaoState extends State<Edicao> {
-  late TextEditingController tituloController;
-  late TextEditingController dataController;
-
-  @override
-  void initState() {
-    super.initState();
-    tituloController = TextEditingController(text: widget.evento.titulo);
-    dataController = TextEditingController(text: widget.evento.data);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Edição de Evento'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: tituloController,
-              decoration: InputDecoration(labelText: 'Título'),
-            ),
-            TextField(
-              controller: dataController,
-              decoration: InputDecoration(labelText: 'Data'),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  widget.eventos.updateEvento(
-                    widget.index,
-                    Evento(titulo: tituloController.text, data: dataController.text),
-                  );
-                });
-                Navigator.pop(context);
-              },
-              child: Text('Salvar'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class Cadastro extends StatefulWidget {
-  final EventosRepository eventos;
-
-  Cadastro({required this.eventos});
-
-  @override
-  _CadastroState createState() => _CadastroState();
-}
-
-class _CadastroState extends State<Cadastro> {
-  final TextEditingController tituloController = TextEditingController();
-  final TextEditingController dataController = TextEditingController();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Cadastrar Evento'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: tituloController,
-              decoration: InputDecoration(labelText: 'Título'),
-            ),
-            TextField(
-              controller: dataController,
-              decoration: InputDecoration(labelText: 'Data'),
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  widget.eventos.addEvento(
-                    Evento(titulo: tituloController.text, data: dataController.text),
-                  );
-                });
-                Navigator.pop(context);
-              },
-              child: Text('Cadastrar'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class Evento {
-  String titulo;
-  String data;
-
-  Evento({required this.titulo, required this.data});
-}
-
-class EventosRepository {
-  List<Evento> _eventos = [];
-
-  List<Evento> getEventos() => _eventos;
-
-  void addEvento(Evento evento) {
-    _eventos.add(evento);
-  }
-
-  void updateEvento(int index, Evento evento) {
-    _eventos[index] = evento;
-  }
-
-  Future<void> loadEventos() async {
-
   }
 }
